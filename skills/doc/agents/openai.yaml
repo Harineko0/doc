@@ -1,0 +1,4 @@
+interface:
+  display_name: "doc CLI"
+  short_description: "Validate and safely move Markdown documentation"
+  default_prompt: "Use $doc to lint this Git repository or move a path while preserving Markdown links."
