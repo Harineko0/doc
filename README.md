@@ -27,16 +27,19 @@ doc lint --staged
 ```
 
 `doc lint` checks every tracked Markdown file and every untracked Markdown file
-that is not excluded by `.gitignore`. File extensions `.md` and `.markdown` are
-matched case-insensitively. It reports missing relative targets, incorrect path
-casing, missing GitHub-style heading anchors, and awkward phrasing or slang in prose.
+that is not excluded by `.gitignore` or the repository-root `.docignore`. Unlike
+`.gitignore`, `.docignore` also excludes tracked files. It uses Git's ignore
+pattern syntax, including negated (`!`) patterns. File extensions `.md` and
+`.markdown` are matched case-insensitively. It reports missing relative targets,
+incorrect path casing, missing GitHub-style heading anchors, and awkward phrasing
+or slang in prose.
 
 `doc lint --staged` is intended for pre-commit hooks. It checks only added,
 copied, modified, or renamed Markdown paths in the Git index. Both the document
-contents and their targets are read from the index, so partially staged files
-are checked exactly as they will be committed. A staged deletion therefore
-makes a link to that path invalid. Deleted Markdown documents are not lint
-inputs.
+contents, their targets, and `.docignore` are read from the index, so partially
+staged files are checked exactly as they will be committed. A staged deletion
+therefore makes a link to that path invalid. Deleted Markdown documents are not
+lint inputs.
 
 Diagnostics have a stable compiler-style format:
 
@@ -60,8 +63,8 @@ titles, surrounding Markdown, and line endings are preserved.
 
 The destination parent directory must already exist. The command refuses to
 overwrite another path, escape the repository, or move a directory beneath
-itself. It edits the working tree only; it does not stage changes. Ignored
-Markdown files are outside the link-maintenance guarantee.
+itself. It edits the working tree only; it does not stage changes. Markdown files
+ignored by `.gitignore` or `.docignore` are outside the link-maintenance guarantee.
 
 ## Link rules
 

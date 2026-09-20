@@ -9,8 +9,8 @@ Use `doc` inside the target Git worktree. Prefer running at the repository root 
 
 ## Choose the command
 
-- Run `doc lint` to check the working-tree documentation set: tracked Markdown plus untracked, non-ignored Markdown. Use this after documentation edits or link-affecting file changes.
-- Run `doc lint --staged` for a pre-commit check. It reads documents and targets from the Git index and checks only added, copied, modified, or renamed Markdown inputs. It intentionally does not validate unstaged contents.
+- Run `doc lint` to check the working-tree documentation set: tracked Markdown plus untracked, non-ignored Markdown. Repository-root `.docignore` rules also exclude tracked Markdown. Use this after documentation edits or link-affecting file changes.
+- Run `doc lint --staged` for a pre-commit check. It reads documents, targets, and `.docignore` from the Git index and checks only added, copied, modified, or renamed Markdown inputs. It intentionally does not validate unstaged contents.
 - Run `doc mv <source> <destination>` when the user has asked to move or rename a repository path and Markdown links must follow it. It supports files, directories, and non-Markdown assets referenced by Markdown.
 
 Do not use `doc mv` merely to diagnose a problem: it mutates the working tree. Do not stage its changes unless the user also requested staging or committing.

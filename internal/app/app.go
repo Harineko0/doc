@@ -93,7 +93,7 @@ func Lint(staged bool) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		paths, err = gitstore.StagedMarkdown(root)
+		paths, err = gitstore.StagedMarkdown(root, index)
 		if err != nil {
 			return nil, err
 		}

@@ -51,6 +51,48 @@ func TestLintSameDocumentAnchor(t *testing.T) {
 	})
 }
 
+func TestLintDocignore(t *testing.T) {
+	repo := newRepo(t)
+	write(t, repo, "tracked.md", "[missing](tracked-missing.md)\n")
+	write(t, repo, "nested/tracked.md", "[missing](nested-missing.md)\n")
+	write(t, repo, "drafts/ignored.md", "[missing](ignored-missing.md)\n")
+	write(t, repo, "drafts/keep.md", "[missing](keep-missing.md)\n")
+	write(t, repo, "gitignored-but-tracked.md", "[missing](gitignored-missing.md)\n")
+	git(t, repo, "add", "tracked.md", "nested/tracked.md", "gitignored-but-tracked.md")
+	write(t, repo, ".gitignore", "gitignored-but-tracked.md\n")
+	write(t, repo, ".docignore", "/tracked.md\ndrafts/*\n!drafts/keep.md\n")
+
+	withCWD(t, repo, func() {
+		findings, err := Lint(false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		joined := strings.Join(findings, "\n")
+		if len(findings) != 3 || !strings.Contains(joined, "drafts/keep.md") ||
+			!strings.Contains(joined, "nested/tracked.md") || !strings.Contains(joined, "gitignored-but-tracked.md") {
+			t.Fatalf("findings: %v", findings)
+		}
+	})
+}
+
+func TestLintStagedUsesStagedDocignore(t *testing.T) {
+	repo := newRepo(t)
+	write(t, repo, ".docignore", "ignored.md\n")
+	write(t, repo, "ignored.md", "clean\n")
+	git(t, repo, "add", ".")
+	git(t, repo, "commit", "-m", "initial")
+	write(t, repo, "ignored.md", "[missing](missing.md)\n")
+	git(t, repo, "add", "ignored.md")
+	write(t, repo, ".docignore", "")
+
+	withCWD(t, repo, func() {
+		findings, err := Lint(true)
+		if err != nil || len(findings) != 0 {
+			t.Fatalf("staged lint = %v, %v", findings, err)
+		}
+	})
+}
+
 func TestLintStagedUsesIndexSnapshot(t *testing.T) {
 	repo := newRepo(t)
 	write(t, repo, "target.md", "# Committed Heading\n")
@@ -201,6 +243,29 @@ func TestMoveNonMarkdownAsset(t *testing.T) {
 		}
 	})
 	assertContents(t, repo, "README.md", "![image](images/image.png)\n")
+}
+
+func TestMoveSkipsDocignoredMarkdown(t *testing.T) {
+	repo := newRepo(t)
+	write(t, repo, ".docignore", "ignored.md\n")
+	write(t, repo, "README.md", "[target](target.md)\n")
+	write(t, repo, "ignored.md", "[target](target.md)\n")
+	write(t, repo, "target.md", "# Target\n")
+	if err := os.Mkdir(filepath.Join(repo, "docs"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	withCWD(t, repo, func() {
+		result, err := Move("target.md", "docs/target.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if result.Updated != 1 {
+			t.Fatalf("updated = %d, want 1", result.Updated)
+		}
+	})
+	assertContents(t, repo, "README.md", "[target](docs/target.md)\n")
+	assertContents(t, repo, "ignored.md", "[target](target.md)\n")
 }
 
 func TestMoveRejectsCollisionAndMissingParent(t *testing.T) {

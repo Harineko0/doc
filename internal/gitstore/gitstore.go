@@ -3,6 +3,7 @@ package gitstore
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -38,17 +39,14 @@ func WorkingMarkdown(root string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var paths []string
-	for _, path := range splitNUL(out) {
-		if IsMarkdown(path) {
-			paths = append(paths, filepath.FromSlash(path))
-		}
+	patterns, err := os.ReadFile(filepath.Join(root, ".docignore"))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("read .docignore: %w", err)
 	}
-	sort.Strings(paths)
-	return paths, nil
+	return markdownPaths(root, out, patterns)
 }
 
-func StagedMarkdown(root string) ([]string, error) {
+func StagedMarkdown(root string, index *Index) ([]string, error) {
 	if out, err := git(root, "ls-files", "-u", "-z"); err != nil {
 		return nil, err
 	} else if len(out) != 0 {
@@ -58,10 +56,45 @@ func StagedMarkdown(root string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	var patterns []byte
+	if _, ok := index.Entries[".docignore"]; ok {
+		patterns, err = index.Read(".docignore")
+		if err != nil {
+			return nil, fmt.Errorf("read staged .docignore: %w", err)
+		}
+	}
+	return markdownPaths(root, out, patterns)
+}
+
+func markdownPaths(root string, listed, patterns []byte) ([]string, error) {
+	ignored := map[string]struct{}{}
+	if len(patterns) != 0 {
+		file, err := os.CreateTemp("", "docignore-*")
+		if err != nil {
+			return nil, fmt.Errorf("create temporary .docignore: %w", err)
+		}
+		name := file.Name()
+		defer os.Remove(name)
+		if _, err := file.Write(patterns); err != nil {
+			file.Close()
+			return nil, fmt.Errorf("write temporary .docignore: %w", err)
+		}
+		if err := file.Close(); err != nil {
+			return nil, fmt.Errorf("close temporary .docignore: %w", err)
+		}
+		out, err := git(root, "ls-files", "-z", "--cached", "--others", "--ignored", "--exclude-from="+name)
+		if err != nil {
+			return nil, fmt.Errorf("apply .docignore: %w", err)
+		}
+		for _, path := range splitNUL(out) {
+			ignored[filepath.Clean(filepath.FromSlash(path))] = struct{}{}
+		}
+	}
 	var paths []string
-	for _, path := range splitNUL(out) {
-		if IsMarkdown(path) {
-			paths = append(paths, filepath.FromSlash(path))
+	for _, path := range splitNUL(listed) {
+		path := filepath.Clean(filepath.FromSlash(path))
+		if _, skip := ignored[path]; IsMarkdown(path) && !skip {
+			paths = append(paths, path)
 		}
 	}
 	sort.Strings(paths)
