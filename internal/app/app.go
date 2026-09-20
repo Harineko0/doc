@@ -120,6 +120,7 @@ func Lint(staged bool) ([]string, error) {
 		}
 		doc := mdparse.Parse(data)
 		cache[filepath.Clean(path)] = doc
+		findings = append(findings, checkVocabulary(path, data, doc.Excluded)...)
 		for _, link := range doc.Links {
 			if !mdparse.IsLocal(link.Destination) {
 				continue

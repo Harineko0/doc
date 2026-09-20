@@ -29,7 +29,7 @@ doc lint --staged
 `doc lint` checks every tracked Markdown file and every untracked Markdown file
 that is not excluded by `.gitignore`. File extensions `.md` and `.markdown` are
 matched case-insensitively. It reports missing relative targets, incorrect path
-casing, and missing GitHub-style heading anchors.
+casing, missing GitHub-style heading anchors, and awkward phrasing or slang in prose.
 
 `doc lint --staged` is intended for pre-commit hooks. It checks only added,
 copied, modified, or renamed Markdown paths in the Git index. Both the document
@@ -42,6 +42,7 @@ Diagnostics have a stable compiler-style format:
 
 ```text
 guide/start.md:12:18: link target does not exist: guide/missing.md
+docs/poc.md:8:14: awkward phrasing "太らせる" (consider "機能を拡充する" or "拡張する")
 ```
 
 ### `doc mv`

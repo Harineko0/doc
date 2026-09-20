@@ -26,8 +26,9 @@ type Link struct {
 }
 
 type Document struct {
-	Links   []Link
-	Anchors map[string]struct{}
+	Links    []Link
+	Anchors  map[string]struct{}
+	Excluded []bool
 }
 
 type Edit struct {
@@ -49,7 +50,7 @@ func Parse(source []byte) Document {
 	markFencedBlocks(source, excluded)
 	markCodeSpans(source, excluded)
 
-	doc := Document{Anchors: map[string]struct{}{}}
+	doc := Document{Anchors: map[string]struct{}{}, Excluded: excluded}
 	usedAnchors := map[string]struct{}{}
 	_ = ast.Walk(root, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
